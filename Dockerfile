@@ -6,6 +6,10 @@
 # dibayar sekali, bukan di tiap deploy.
 #
 # Tidak ada kode, secret, atau konfigurasi project di dalam image ini.
+#
+# SENGAJA tidak ada `chown /var/lib/nginx`: user worker nginx berbeda antar
+# project (www-data vs nginx), dan chown yang salah memutus buffering fastcgi
+# untuk upload/response besar. Biarkan tiap project mengaturnya di Dockerfile-nya.
 FROM php:8.4-fpm-alpine
 
 RUN apk add --no-cache \
@@ -31,10 +35,5 @@ RUN { \
       echo "opcache.max_accelerated_files=10000"; \
       echo "opcache.validate_timestamps=0"; \
     } > /usr/local/etc/php/conf.d/opcache.ini
-
-# nginx.conf project menjalankan worker sebagai www-data, tapi paket apk mengirim
-# /var/lib/nginx milik nginx:nginx (mode 750) — tanpa ini buffering fastcgi gagal
-# "Permission denied" untuk response yang lebih besar dari buffer memori.
-RUN chown -R www-data:www-data /var/lib/nginx
 
 WORKDIR /var/www/html
